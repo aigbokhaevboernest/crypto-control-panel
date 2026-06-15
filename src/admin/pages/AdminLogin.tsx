@@ -120,7 +120,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-between w-full bg-white rounded-full px-6 py-3.5 shadow-md hover:shadow-lg transition disabled:opacity-60"
+              className="flex items-center justify-between w-full bg-white rounded-full px-6 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.25)] hover:shadow-[0_0_28px_rgba(0,0,0,0.35)] transition disabled:opacity-60"
             >
               <span className="text-[#5a4d8a] font-bold text-sm tracking-wide uppercase">
                 {loading ? "Signing in…" : "Log In Now"}
