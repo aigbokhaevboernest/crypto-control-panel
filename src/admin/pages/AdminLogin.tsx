@@ -88,16 +88,16 @@ export default function AdminLogin() {
         {/* Form content */}
         <div className="relative z-10 px-10 py-20 w-full">
           <form onSubmit={handleSubmit} className="space-y-8 max-w-[260px]">
-            {/* Email */}
+            {/* Username or Email */}
             <div className="flex items-center gap-3 border-b-2 border-gray-300 pb-2">
               <User className="h-5 w-5 text-[#7b6db3] shrink-0" />
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
+                autoComplete="username"
                 placeholder="User name / Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
               />
             </div>
