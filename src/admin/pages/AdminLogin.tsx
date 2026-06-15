@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,9 +39,22 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      let loginEmail = identifier.trim();
+      if (!loginEmail.includes("@")) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("username", loginEmail)
+          .maybeSingle();
+        if (profileError || !profile?.email) {
+          toast.error("Invalid username or email");
+          return;
+        }
+        loginEmail = profile.email;
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
       if (error || !data.user) {
-        toast.error(error?.message ?? "Sign in failed");
+        toast.error(error?.message ?? "Sign in suppression failed");
         return;
       }
       const isAdmin = await checkAdminRole(data.user.id);
@@ -75,16 +88,16 @@ export default function AdminLogin() {
         {/* Form content */}
         <div className="relative z-10 px-10 py-20 w-full">
           <form onSubmit={handleSubmit} className="space-y-8 max-w-[260px]">
-            {/* Email */}
+            {/* Username or Email */}
             <div className="flex items-center gap-3 border-b-2 border-gray-300 pb-2">
               <User className="h-5 w-5 text-[#7b6db3] shrink-0" />
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
+                autoComplete="username"
                 placeholder="User name / Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
               />
             </div>
@@ -107,7 +120,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-between w-full bg-white rounded-full px-6 py-3.5 shadow-md hover:shadow-lg transition disabled:opacity-60"
+              className="flex items-center justify-between w-full bg-white rounded-full px-6 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.25)] hover:shadow-[0_0_28px_rgba(0,0,0,0.35)] transition disabled:opacity-60"
             >
               <span className="text-[#5a4d8a] font-bold text-sm tracking-wide uppercase">
                 {loading ? "Signing in…" : "Log In Now"}
