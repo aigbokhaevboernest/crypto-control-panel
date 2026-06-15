@@ -39,9 +39,22 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      let loginEmail = identifier.trim();
+      if (!loginEmail.includes("@")) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("username", loginEmail)
+          .maybeSingle();
+        if (profileError || !profile?.email) {
+          toast.error("Invalid username or email");
+          return;
+        }
+        loginEmail = profile.email;
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
       if (error || !data.user) {
-        toast.error(error?.message ?? "Sign in failed");
+        toast.error(error?.message ?? "Sign in suppression failed");
         return;
       }
       const isAdmin = await checkAdminRole(data.user.id);
