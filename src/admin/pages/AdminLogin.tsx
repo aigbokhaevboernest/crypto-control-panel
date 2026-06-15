@@ -2,17 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase as supabaseTyped } from "@/lib/supabaseClient";
 const supabase: any = supabaseTyped;
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Lock, Mail, ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { User, Lock, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const checkAdminRole = async (userId: string) => {
@@ -61,114 +57,64 @@ export default function AdminLogin() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0a0a0f] text-white">
-      {/* Ambient background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-20 h-[420px] w-[420px] rounded-full bg-indigo-600/30 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-20 h-[460px] w-[460px] rounded-full bg-fuchsia-600/20 blur-[140px]" />
-        <div className="absolute top-1/3 left-1/2 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      style={{ background: "linear-gradient(180deg, #b8a9e8 0%, #7b6db3 100%)" }}>
+
+      {/* White card with curved right edge */}
+      <div className="relative w-full max-w-md mx-auto">
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute left-0 top-0 bottom-0 bg-white"
           style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
+            width: "75%",
+            borderTopRightRadius: "200px",
+            borderBottomRightRadius: "200px",
+            boxShadow: "4px 0 24px rgba(0,0,0,0.08)",
           }}
         />
-      </div>
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-5 py-10">
-        <div className="w-full max-w-[400px]">
-          {/* Brand */}
-          <div className="mb-8 flex flex-col items-center text-center">
-            <div className="relative mb-5">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 blur-md opacity-70" />
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-600 shadow-lg shadow-indigo-900/50">
-                <ShieldCheck className="h-7 w-7 text-white" strokeWidth={2.2} />
-              </div>
+        {/* Form content */}
+        <div className="relative z-10 px-10 py-20 w-full">
+          <form onSubmit={handleSubmit} className="space-y-8 max-w-[260px]">
+            {/* Email */}
+            <div className="flex items-center gap-3 border-b-2 border-gray-300 pb-2">
+              <User className="h-5 w-5 text-[#7b6db3] shrink-0" />
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="User name / Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+              />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Admin Portal
-            </h1>
-            <p className="mt-1.5 text-sm text-white/50">
-              Sign in to access the control center
-            </p>
-          </div>
 
-          {/* Card */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl shadow-2xl shadow-black/40">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-medium text-white/70">
-                  Email address
-                </Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="admin@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-sm text-white placeholder:text-white/30 focus-visible:border-indigo-400/60 focus-visible:ring-1 focus-visible:ring-indigo-400/40"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs font-medium text-white/70">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-xl border-white/10 bg-white/[0.04] pl-10 pr-10 text-sm text-white placeholder:text-white/30 focus-visible:border-indigo-400/60 focus-visible:ring-1 focus-visible:ring-indigo-400/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 transition hover:text-white/80"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="group relative h-12 w-full overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-600 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:shadow-fuchsia-900/40 hover:brightness-110 disabled:opacity-60"
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  {loading ? "Signing in…" : "Sign in"}
-                  {!loading && (
-                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                  )}
-                </span>
-              </Button>
-            </form>
-
-            <div className="mt-6 flex items-center justify-center gap-2 border-t border-white/5 pt-5">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              <p className="text-[11px] uppercase tracking-wider text-white/40">
-                Secure connection · encrypted
-              </p>
+            {/* Password */}
+            <div className="flex items-center gap-3 border-b-2 border-gray-300 pb-2">
+              <Lock className="h-5 w-5 text-[#7b6db3] shrink-0" />
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+              />
             </div>
-          </div>
 
-          <p className="mt-6 text-center text-[11px] text-white/30">
-            Authorized personnel only. All activity is monitored and logged.
-          </p>
+            {/* Login button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center justify-between w-full bg-white rounded-full px-6 py-3.5 shadow-md hover:shadow-lg transition disabled:opacity-60"
+            >
+              <span className="text-[#5a4d8a] font-bold text-sm tracking-wide uppercase">
+                {loading ? "Signing in…" : "Log In Now"}
+              </span>
+              <ChevronRight className="h-5 w-5 text-[#5a4d8a]" />
+            </button>
+          </form>
         </div>
       </div>
     </main>
