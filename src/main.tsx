@@ -3,3 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+console.log("URL:", import.meta.env.VITE_SUPABASE_URL)
+console.log("KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY)
+
