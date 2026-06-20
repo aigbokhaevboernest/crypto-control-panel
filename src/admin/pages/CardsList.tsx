@@ -11,46 +11,57 @@ export default function CardsList() {
   const [profileMap, setProfileMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Admin · Cards";
 
     if (!supabaseAdmin) {
       setPageError(
-        "Admin client not configured — VITE_SUPABASE_URL or VITE_SUPABASE_SERVICE_ROLE_KEY is missing in your deployment's environment variables."
+        "Admin client not configured — VITE_SUPABASE_URL or VITE_SUPABASE_SERVICE_ROLE_KEY is missing."
       );
       setLoading(false);
       return;
     }
 
     (async () => {
-      // Step 1: fetch cards. select("*") avoids breaking on column-name mismatches.
-      const { data: cards, error: cardsError } = await supabaseAdmin
+      // DEBUG: fetch everything, no filter, so we can see what's really there
+      const { data: allRows, error: allError } = await supabaseAdmin
         .from("transactions")
         .select("*")
-        .eq("method", "card")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-      if (cardsError) {
-        setPageError(`Cards query failed: ${cardsError.message}`);
+      if (allError) {
+        setPageError(`Query failed: ${allError.message}`);
         setLoading(false);
         return;
       }
 
-      setRows(cards ?? []);
+      const total = allRows?.length ?? 0;
+      const methods = [...new Set((allRows ?? []).map((r: any) => r.method))];
+      const types = [...new Set((allRows ?? []).map((r: any) => r.type))];
+      const sampleKeys = allRows?.[0] ? Object.keys(allRows[0]) : [];
+
+      setDebugInfo(
+        `Total rows in transactions (last 10): ${total}\n` +
+        `Distinct "method" values: ${JSON.stringify(methods)}\n` +
+        `Distinct "type" values: ${JSON.stringify(types)}\n` +
+        `Columns present: ${sampleKeys.join(", ")}`
+      );
+
+      const cards = (allRows ?? []).filter((r: any) => r.method === "card");
+      setRows(cards);
       setLoading(false);
 
-      // Step 2: fetch profiles separately — failures here never hide the cards above.
-      const userIds = [...new Set((cards ?? []).map((c: any) => c.user_id).filter(Boolean))];
+      const userIds = [...new Set(cards.map((c: any) => c.user_id).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
 
-        if (profilesError) {
-          console.error("Profile fetch failed (cards still shown):", profilesError.message);
-        } else {
+        if (!profilesError) {
           const map: Record<string, any> = {};
           profiles?.forEach((p: any) => (map[p.user_id] = p));
           setProfileMap(map);
@@ -76,6 +87,13 @@ export default function CardsList() {
         <h1 className="text-2xl font-semibold">Cards</h1>
         <p className="text-sm text-muted-foreground">{rows.length} cards on file</p>
       </div>
+
+      {debugInfo && (
+        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs whitespace-pre-wrap font-mono">
+          {debugInfo}
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-4">
           <Table>
@@ -104,7 +122,6 @@ export default function CardsList() {
               ) : (
                 rows.map((c) => {
                   const profile = profileMap[c.user_id] || {};
-                  const amount = c.amount_usd ?? c.amount ?? 0;
                   const holder = c.card_billing_name ?? c.cardholder_name ?? c.card_holder ?? "—";
                   const last4 = c.card_last4 || (c.card_number || "").slice(-4);
                   return (
@@ -112,10 +129,7 @@ export default function CardsList() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <CreditCard className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-mono text-sm">•••• {last4 || "—"}</p>
-                            <p className="text-xs text-muted-foreground capitalize">card</p>
-                          </div>
+                          <p className="font-mono text-sm">•••• {last4 || "—"}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">
