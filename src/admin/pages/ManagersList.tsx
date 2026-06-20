@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { Trash2, Pencil, Briefcase, TrendingUp, Check, X } from "lucide-react";
 import { AvatarUpload } from "../components/AvatarUpload";
+import { HARDCODED_EXPERTS } from "@/lib/experts";
 
 export default function ManagersList() {
   const [rows, setRows] = useState<any[]>([]);
@@ -39,7 +40,16 @@ export default function ManagersList() {
       const { data: ts } = await supabase.from("expert_traders").select("id, name, handle").in("id", traderIds);
       (ts ?? []).forEach((t: any) => { tmap[t.id] = t; });
     }
-    setRequests((subs ?? []).map((s: any) => ({ ...s, profile: pmap[s.user_id], trader: tmap[s.trader_id] })));
+    // trader_id may belong to a hardcoded (non-DB) expert — fall back to the static list for display.
+    const hardcodedMap: Record<string, any> = {};
+    HARDCODED_EXPERTS.forEach((h: any) => { hardcodedMap[h.id] = h; });
+
+    setRequests((subs ?? []).map((s: any) => ({
+      ...s,
+      profile: pmap[s.user_id],
+      trader: tmap[s.trader_id] ?? hardcodedMap[s.trader_id] ?? null,
+      isHardcodedTrader: !tmap[s.trader_id] && !!hardcodedMap[s.trader_id],
+    })));
     setRows(traders ?? []);
     setLoading(false);
   };
@@ -49,10 +59,19 @@ export default function ManagersList() {
   const assign = async (req: any) => {
     const { error } = await supabase.from("copy_subscriptions").update({ status: "active" }).eq("id", req.id);
     if (error) return toast.error(error.message);
-    await supabase.from("user_experts").insert({
-      user_id: req.user_id, expert_id: req.trader_id, is_copying: true, deposit_confirmed: false,
-    });
-    await supabase.from("profiles").update({ assigned_trader_id: req.trader_id, assigned_expert_id: req.trader_id }).eq("user_id", req.user_id);
+
+    // Only link up expert_traders-dependent records when the trader is a real DB row.
+    // Hardcoded experts have no row in expert_traders, so user_experts.expert_id (uuid FK)
+    // and profiles.assigned_trader_id would fail or point at nothing real.
+    if (!req.isHardcodedTrader) {
+      await supabase.from("user_experts").insert({
+        user_id: req.user_id, expert_id: req.trader_id, is_copying: true, deposit_confirmed: false,
+      });
+      await supabase.from("profiles").update({ assigned_trader_id: req.trader_id, assigned_expert_id: req.trader_id }).eq("user_id", req.user_id);
+    } else {
+      toast.info("Assigned a non-DB expert — add them to Expert Traders to fully link the account.");
+    }
+
     toast.success("Subscription assigned");
     load();
   };
@@ -107,7 +126,16 @@ export default function ManagersList() {
               <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{r.profile?.full_name || r.profile?.email || "Unknown"}</p>
-                  <p className="truncate text-xs text-muted-foreground">→ {r.trader?.name || "—"} (@{r.trader?.handle || "?"})</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    → {r.trader?.name || "—"} {r.trader?.handle ? `(@${r.trader.handle})` : ""}
+                    {r.isHardcodedTrader && <span className="ml-1 text-[10px] text-amber-500">(not in DB)</span>}
+                  </p>
+                  {r.plan_name && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {r.plan_name}{r.plan_amount ? ` · $${Number(r.plan_amount).toLocaleString()}` : ""}
+                      {r.recurring_monthly === "true" ? " · recurring" : ""}
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
