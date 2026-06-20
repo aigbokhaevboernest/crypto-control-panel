@@ -7,13 +7,17 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn('⚠️ Supabase admin credentials not found. Admin features may not work.');
+  console.warn('⚠️ Supabase admin credentials not found. Admin features will be disabled.');
 }
 
-// This client bypasses RLS - USE ONLY IN ADMIN PAGES
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+// This client bypasses RLS — USE ONLY IN ADMIN PAGES.
+// Returns null instead of throwing if credentials are missing, so a missing
+// env var disables admin features gracefully instead of crashing the entire app.
+export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
