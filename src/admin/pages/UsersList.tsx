@@ -27,7 +27,7 @@ export default function UsersList({ statusFilter }: { statusFilter?: string }) {
     const { data, error } = await query;
     if (error) toast.error(error.message);
 
-    const ids = (data ?? []).map((p: any) => p.id);
+    const ids = (data ?? []).map((p: any) => p.user_id);
     let adminIds = new Set<string>();
     if (ids.length) {
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
