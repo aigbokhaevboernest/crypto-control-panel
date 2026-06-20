@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { Trash2, Pencil, Briefcase, TrendingUp, Check, X } from "lucide-react";
 import { AvatarUpload } from "../components/AvatarUpload";
-import { HARDCODED_EXPERTS } from "@/lib/experts";
 
 export default function ManagersList() {
   const [rows, setRows] = useState<any[]>([]);
