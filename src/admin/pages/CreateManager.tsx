@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { AvatarUpload } from "../components/AvatarUpload";
 
 export default function CreateManager() {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ export default function CreateManager() {
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div><Label>Handle *</Label><Input value={form.handle} onChange={(e) => setForm({ ...form, handle: e.target.value })} /></div>
-          <div className="sm:col-span-2"><Label>Avatar URL *</Label><Input value={form.avatar_url} onChange={(e) => setForm({ ...form, avatar_url: e.target.value })} /></div>
+          <div className="sm:col-span-2"><AvatarUpload value={form.avatar_url} onChange={(url) => setForm({ ...form, avatar_url: url })} label="Avatar *" pathPrefix="traders" /></div>
           <div className="sm:col-span-2"><Label>Specialty *</Label><Input placeholder="e.g. Forex, Crypto" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
           <div><Label>Win Rate % *</Label><Input type="number" inputMode="decimal" value={form.win_rate} onChange={(e) => setForm({ ...form, win_rate: e.target.value })} /></div>
           <div><Label>Total Profit (USD) *</Label><Input type="number" inputMode="decimal" value={form.total_profit_usd} onChange={(e) => setForm({ ...form, total_profit_usd: e.target.value })} /></div>

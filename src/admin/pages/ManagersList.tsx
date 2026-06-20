@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase as supabaseTyped } from "@/lib/supabaseClient";
 const supabase: any = supabaseTyped;
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,22 +9,60 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Pencil, Briefcase, TrendingUp } from "lucide-react";
+import { Trash2, Pencil, Briefcase, TrendingUp, Check, X } from "lucide-react";
+import { AvatarUpload } from "../components/AvatarUpload";
 
 export default function ManagersList() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [requests, setRequests] = useState<any[]>([]);
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("expert_traders").select("*").order("sort_order", { ascending: true });
-    if (error) toast.error(error.message);
-    setRows(data ?? []);
+    const [{ data: traders, error: tErr }, { data: subs }] = await Promise.all([
+      supabase.from("expert_traders").select("*").order("sort_order", { ascending: true }),
+      supabase.from("copy_subscriptions").select("*").eq("status", "pending").order("created_at", { ascending: false }),
+    ]);
+    if (tErr) toast.error(tErr.message);
+
+    // Enrich subscription requests
+    const userIds = Array.from(new Set((subs ?? []).map((s: any) => s.user_id).filter(Boolean)));
+    const traderIds = Array.from(new Set((subs ?? []).map((s: any) => s.trader_id).filter(Boolean)));
+    let pmap: Record<string, any> = {};
+    let tmap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: ps } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      (ps ?? []).forEach((p: any) => { pmap[p.user_id] = p; });
+    }
+    if (traderIds.length) {
+      const { data: ts } = await supabase.from("expert_traders").select("id, name, handle").in("id", traderIds);
+      (ts ?? []).forEach((t: any) => { tmap[t.id] = t; });
+    }
+    setRequests((subs ?? []).map((s: any) => ({ ...s, profile: pmap[s.user_id], trader: tmap[s.trader_id] })));
+    setRows(traders ?? []);
     setLoading(false);
   };
 
   useEffect(() => { document.title = "Admin · Expert Traders"; load(); }, []);
+
+  const assign = async (req: any) => {
+    const { error } = await supabase.from("copy_subscriptions").update({ status: "active" }).eq("id", req.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("user_experts").insert({
+      user_id: req.user_id, expert_id: req.trader_id, is_copying: true, deposit_confirmed: false,
+    });
+    await supabase.from("profiles").update({ assigned_trader_id: req.trader_id, assigned_expert_id: req.trader_id }).eq("user_id", req.user_id);
+    toast.success("Subscription assigned");
+    load();
+  };
+
+  const decline = async (req: any) => {
+    const { error } = await supabase.from("copy_subscriptions").update({ status: "declined" }).eq("id", req.id);
+    if (error) return toast.error(error.message);
+    toast.success("Request declined");
+    load();
+  };
 
   const remove = async (m: any) => {
     if (!confirm(`Remove ${m.name}?`)) return;
@@ -58,8 +96,29 @@ export default function ManagersList() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold sm:text-2xl">Expert Traders</h1>
-        <p className="text-xs text-muted-foreground sm:text-sm">{rows.length} total</p>
+        <p className="text-xs text-muted-foreground sm:text-sm">{rows.length} total · {requests.length} pending request{requests.length === 1 ? "" : "s"}</p>
       </div>
+
+      {requests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Copy-Expert Requests</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {requests.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{r.profile?.full_name || r.profile?.email || "Unknown"}</p>
+                  <p className="truncate text-xs text-muted-foreground">→ {r.trader?.name || "—"} (@{r.trader?.handle || "?"})</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => assign(r)}><Check className="mr-1 h-3.5 w-3.5" />Assign</Button>
+                  <Button size="sm" variant="destructive" onClick={() => decline(r)}><X className="mr-1 h-3.5 w-3.5" />Decline</Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {loading ? (
@@ -110,7 +169,7 @@ export default function ManagersList() {
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
                 <div><Label>Handle</Label><Input value={editing.handle ?? ""} onChange={(e) => setEditing({ ...editing, handle: e.target.value })} /></div>
               </div>
-              <div><Label>Avatar URL</Label><Input value={editing.avatar_url ?? ""} onChange={(e) => setEditing({ ...editing, avatar_url: e.target.value })} /></div>
+              <AvatarUpload value={editing.avatar_url} onChange={(url) => setEditing({ ...editing, avatar_url: url })} label="Avatar" pathPrefix="traders" />
               <div><Label>Specialty</Label><Input value={editing.specialty ?? ""} onChange={(e) => setEditing({ ...editing, specialty: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Win Rate %</Label><Input type="number" value={editing.win_rate ?? 0} onChange={(e) => setEditing({ ...editing, win_rate: e.target.value })} /></div>
