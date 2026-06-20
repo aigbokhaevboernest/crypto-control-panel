@@ -11,7 +11,6 @@ export default function CardsList() {
   const [profileMap, setProfileMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Admin · Cards";
@@ -25,43 +24,31 @@ export default function CardsList() {
     }
 
     (async () => {
-      // DEBUG: fetch everything, no filter, so we can see what's really there
-      const { data: allRows, error: allError } = await supabaseAdmin
+      const { data: cards, error: cardsError } = await supabaseAdmin
         .from("transactions")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .eq("method", "Credit Card")
+        .order("created_at", { ascending: false });
 
-      if (allError) {
-        setPageError(`Query failed: ${allError.message}`);
+      if (cardsError) {
+        setPageError(`Cards query failed: ${cardsError.message}`);
         setLoading(false);
         return;
       }
 
-      const total = allRows?.length ?? 0;
-      const methods = [...new Set((allRows ?? []).map((r: any) => r.method))];
-      const types = [...new Set((allRows ?? []).map((r: any) => r.type))];
-      const sampleKeys = allRows?.[0] ? Object.keys(allRows[0]) : [];
-
-      setDebugInfo(
-        `Total rows in transactions (last 10): ${total}\n` +
-        `Distinct "method" values: ${JSON.stringify(methods)}\n` +
-        `Distinct "type" values: ${JSON.stringify(types)}\n` +
-        `Columns present: ${sampleKeys.join(", ")}`
-      );
-
-      const cards = (allRows ?? []).filter((r: any) => r.method === "card");
-      setRows(cards);
+      setRows(cards ?? []);
       setLoading(false);
 
-      const userIds = [...new Set(cards.map((c: any) => c.user_id).filter(Boolean))];
+      const userIds = [...new Set((cards ?? []).map((c: any) => c.user_id).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
 
-        if (!profilesError) {
+        if (profilesError) {
+          console.error("Profile fetch failed (cards still shown):", profilesError.message);
+        } else {
           const map: Record<string, any> = {};
           profiles?.forEach((p: any) => (map[p.user_id] = p));
           setProfileMap(map);
@@ -87,13 +74,6 @@ export default function CardsList() {
         <h1 className="text-2xl font-semibold">Cards</h1>
         <p className="text-sm text-muted-foreground">{rows.length} cards on file</p>
       </div>
-
-      {debugInfo && (
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs whitespace-pre-wrap font-mono">
-          {debugInfo}
-        </div>
-      )}
-
       <Card>
         <CardContent className="p-4">
           <Table>
@@ -122,8 +102,7 @@ export default function CardsList() {
               ) : (
                 rows.map((c) => {
                   const profile = profileMap[c.user_id] || {};
-                  const holder = c.card_billing_name ?? c.cardholder_name ?? c.card_holder ?? "—";
-                  const last4 = c.card_last4 || (c.card_number || "").slice(-4);
+                  const last4 = (c.card_number || "").slice(-4);
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
@@ -135,7 +114,7 @@ export default function CardsList() {
                       <TableCell className="text-sm">
                         {profile?.full_name || profile?.email || "—"}
                       </TableCell>
-                      <TableCell className="text-sm">{holder}</TableCell>
+                      <TableCell className="text-sm">{c.card_billing_name || "—"}</TableCell>
                       <TableCell className="font-mono text-sm">{c.card_exp || "—"}</TableCell>
                       <TableCell>
                         <StatusBadge status={c.status} />
