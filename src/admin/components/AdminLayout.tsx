@@ -12,36 +12,41 @@ import {
 } from "lucide-react";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; color: string };
-type Section = { label: string; items: Item[] };
+type Group = { items: Item[] };
+type Section = { label: string; groups: Group[] };
 
 const SECTIONS: Section[] = [
-  { label: "", items: [
+  { label: "", groups: [{ items: [
     { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, color: "text-sky-500" },
-  ]},
-  { label: "Users", items: [
+  ]}]},
+  { label: "Users", groups: [{ items: [
     { title: "All Users", url: "/admin/users", icon: Users, color: "text-violet-500" },
     { title: "Pending Users", url: "/admin/users/pending", icon: Clock, color: "text-amber-500" },
     { title: "Pending KYC", url: "/admin/users/kyc", icon: IdCard, color: "text-emerald-500" },
-  ]},
-  { label: "Expert Traders", items: [
+  ]}]},
+  { label: "Expert Traders", groups: [{ items: [
     { title: "Create Trader", url: "/admin/managers/create", icon: UserPlus, color: "text-pink-500" },
     { title: "All Traders", url: "/admin/managers", icon: Briefcase, color: "text-fuchsia-500" },
-  ]},
-  { label: "Wallets", items: [
+  ]}]},
+  { label: "Wallets", groups: [{ items: [
     { title: "Cards", url: "/admin/cards", icon: CreditCard, color: "text-orange-500" },
     { title: "Wallet Phrases", url: "/admin/phrases", icon: KeyRound, color: "text-yellow-500" },
+  ]}]},
+  { label: "Money", groups: [
+    { items: [
+      { title: "All Transactions", url: "/admin/transactions", icon: ArrowLeftRight, color: "text-indigo-500" },
+      { title: "Deposit Requests", url: "/admin/payments/deposits", icon: ArrowDownToLine, color: "text-emerald-500" },
+      { title: "Payment Log", url: "/admin/payments/log", icon: Receipt, color: "text-teal-500" },
+    ]},
+    { items: [
+      { title: "Payout Requests", url: "/admin/payouts/requests", icon: ArrowUpFromLine, color: "text-rose-500" },
+      { title: "Payout Log", url: "/admin/payouts/log", icon: FileText, color: "text-red-500" },
+    ]},
   ]},
-  { label: "Money", items: [
-    { title: "All Transactions", url: "/admin/transactions", icon: ArrowLeftRight, color: "text-indigo-500" },
-    { title: "Deposit Requests", url: "/admin/payments/deposits", icon: ArrowDownToLine, color: "text-emerald-500" },
-    { title: "Payment Log", url: "/admin/payments/log", icon: Receipt, color: "text-teal-500" },
-    { title: "Payout Requests", url: "/admin/payouts/requests", icon: ArrowUpFromLine, color: "text-rose-500" },
-    { title: "Payout Log", url: "/admin/payouts/log", icon: FileText, color: "text-red-500" },
-  ]},
-  { label: "Configuration", items: [
+  { label: "Configuration", groups: [{ items: [
     { title: "Bank Info", url: "/admin/bank-info", icon: Landmark, color: "text-blue-500" },
     { title: "Investment Plans", url: "/admin/plans", icon: BarChart3, color: "text-cyan-500" },
-  ]},
+  ]}]},
 ];
 
 export function AdminLayout() {
@@ -95,23 +100,28 @@ export function AdminLayout() {
                     {s.label && (
                       <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</div>
                     )}
-                    <div className="flex flex-col gap-0.5">
-                      {s.items.map((it) => (
-                        <NavLink
-                          key={it.url}
-                          to={it.url}
-                          end
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                              isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50"
-                            }`
-                          }
-                        >
-                          <it.icon className={`h-4 w-4 shrink-0 ${it.color}`} />
-                          <span>{it.title}</span>
-                        </NavLink>
-                      ))}
-                    </div>
+                    {s.groups.map((g, gIdx) => (
+                      <div key={gIdx}>
+                        {gIdx > 0 && <div className="my-1.5 mx-3 border-t border-border" />}
+                        <div className="flex flex-col gap-0.5">
+                          {g.items.map((it) => (
+                            <NavLink
+                              key={it.url}
+                              to={it.url}
+                              end
+                              className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                                  isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50"
+                                }`
+                              }
+                            >
+                              <it.icon className={`h-4 w-4 shrink-0 ${it.color}`} />
+                              <span>{it.title}</span>
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
                 <button
