@@ -15,7 +15,7 @@ export default function PhrasesList() {
 
     const fetchData = async () => {
       try {
-        // 1. Fetch all wallet phrases (without the join)
+        // 1. Fetch all wallet phrases
         const { data: phrases, error: phrasesError } = await supabase
           .from("wallet_phrases")
           .select("*")
@@ -23,22 +23,22 @@ export default function PhrasesList() {
 
         if (phrasesError) throw new Error(phrasesError.message);
 
-        // 2. Gather unique user_ids from the phrases
+        // 2. Gather unique user_ids
         const userIds = [...new Set(phrases.map((p: any) => p.user_id).filter(Boolean))];
 
-        // 3. Fetch profiles for those user_ids (if any)
+        // 3. Fetch profiles using 'user_id' as the identifier column
         if (userIds.length > 0) {
           const { data: profiles, error: profilesError } = await supabase
             .from("profiles")
-            .select("id, full_name, email")
-            .in("id", userIds);
+            .select("user_id, full_name, email")
+            .in("user_id", userIds);
 
           if (profilesError) throw new Error(profilesError.message);
 
           // Build a lookup map: user_id -> profile
           const map: Record<string, any> = {};
           profiles.forEach((profile: any) => {
-            map[profile.id] = profile;
+            map[profile.user_id] = profile;
           });
           setProfileMap(map);
         }
