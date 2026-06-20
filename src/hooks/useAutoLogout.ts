@@ -1,19 +1,21 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const EVENTS = ["touchstart", "touchmove", "keydown", "scroll", "click"] as const;
+const EVENTS = ["touchstart", "touchmove", "keydown", "scroll", "click", "mousemove"] as const;
 
 export function useAutoLogout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const logout = async () => {
       await supabase.auth.signOut();
-      navigate("/login", { replace: true });
+      const target = location.pathname.startsWith("/admin") ? "/admin/login" : "/admin/login";
+      navigate(target, { replace: true });
     };
 
     const reset = () => {
@@ -28,5 +30,5 @@ export function useAutoLogout() {
       if (timer) clearTimeout(timer);
       EVENTS.forEach((evt) => window.removeEventListener(evt, reset));
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 }
