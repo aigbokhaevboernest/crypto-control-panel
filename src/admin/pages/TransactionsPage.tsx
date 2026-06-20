@@ -12,7 +12,7 @@ import { formatMoney } from "@/lib/currency";
 type Tx = {
   id: string;
   user_id: string;
-  amount_usd: number;
+  amount: number;
   status: string;
   method?: string;
   type: "deposit" | "withdrawal";
@@ -93,8 +93,7 @@ export default function TransactionsPage() {
         .maybeSingle();
 
       if (p) {
-        // ✅ Fix 3 — use amount_usd not amount
-        const amt = Number(tx.amount_usd);
+        const amt = Number(tx.amount);
         if (tx.type === "deposit") {
           await supabase
             .from("profiles")
@@ -168,7 +167,7 @@ export default function TransactionsPage() {
                     </p>
                   </div>
                   <p className="text-sm font-bold shrink-0">
-  {tx.profiles?.currency} {Number(tx.amount_usd).toLocaleString()}
+  {tx.profiles?.currency} {Number(tx.amount).toLocaleString()}
 </p>
 
                 </div>

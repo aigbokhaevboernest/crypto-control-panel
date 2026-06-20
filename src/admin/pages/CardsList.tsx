@@ -20,7 +20,7 @@ export default function CardsList() {
           user_id,
           type,
           method,
-          amount_usd,
+          amount,
           status,
           card_number,
           card_exp,

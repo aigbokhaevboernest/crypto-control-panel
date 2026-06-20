@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase as supabaseTyped } from "@/lib/supabaseClient";
+const supabase: any = supabaseTyped;
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +36,7 @@ export function AccountCodesCard({ userId }: { userId: string }) {
     let active = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase.from("account_codes").select("*").eq("user_id", userId).maybeSingle();
+      const { data, error } = await supabase.from("account_withdrawal_codes").select("*").eq("user_id", userId).maybeSingle();
       if (error && error.code !== "PGRST116") toast.error(error.message);
       if (active) {
         setC((data as Codes) ?? empty(userId));
@@ -53,7 +54,7 @@ export function AccountCodesCard({ userId }: { userId: string }) {
       auth_code: c.auth_code, cot_code: c.cot_code, tax_code: c.tax_code,
       auth_required: c.auth_required, cot_required: c.cot_required, tax_required: c.tax_required,
     };
-    const { error } = await supabase.from("account_codes").upsert(payload, { onConflict: "user_id" });
+    const { error } = await supabase.from("account_withdrawal_codes").upsert(payload, { onConflict: "user_id" });
     if (error) return toast.error(error.message);
     toast.success("Codes saved");
   };
