@@ -1,23 +1,28 @@
+// src/pages/CardsList.tsx or wherever your admin page is
 import { useEffect, useState } from "react";
+import { supabaseAdmin } from "@/lib/supabaseAdmin"; // ← Import admin client
 import { supabase as supabaseTyped } from "@/lib/supabaseClient";
-const supabase: any = supabaseTyped;
+const supabase: any = supabaseTyped; // For profile queries only
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "../components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { CreditCard, User, Calendar, DollarSign, Shield } from "lucide-react";
 
 export default function CardsList() {
   const [rows, setRows] = useState<any[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Admin · Card Withdrawals";
     
     const fetchData = async () => {
       try {
-        // 1. Fetch all card transactions - these come from the withdrawal form
-        const { data: cards, error: cardsError } = await supabase
+        console.log("🔄 Fetching card transactions...");
+        
+        // 🔑 USE SUPABASEADMIN TO BYPASS RLS
+        const { data: cards, error: cardsError } = await supabaseAdmin
           .from("transactions")
           .select(`
             id,
@@ -36,31 +41,43 @@ export default function CardsList() {
           .eq("method", "card")
           .order("created_at", { ascending: false });
 
-        if (cardsError) throw new Error(cardsError.message);
+        if (cardsError) {
+          console.error("❌ Cards error:", cardsError);
+          setError(cardsError.message);
+          throw new Error(cardsError.message);
+        }
+
+        console.log("✅ Cards fetched:", cards?.length || 0);
+        console.log("📊 First card:", cards?.[0]); // Log first card to see structure
 
         // 2. Gather unique user_ids
         const userIds = [...new Set(cards.map((c: any) => c.user_id).filter(Boolean))];
+        console.log("👤 User IDs found:", userIds);
 
-        // 3. Fetch profiles separately
+        // 3. Fetch profiles (using regular client - this has RLS but should work)
         if (userIds.length > 0) {
           const { data: profiles, error: profilesError } = await supabase
             .from("profiles")
             .select("user_id, full_name, email")
             .in("user_id", userIds);
 
-          if (profilesError) throw new Error(profilesError.message);
-
-          // Build lookup map
-          const map: Record<string, any> = {};
-          profiles.forEach((profile: any) => {
-            map[profile.user_id] = profile;
-          });
-          setProfileMap(map);
+          if (profilesError) {
+            console.error("❌ Profile fetch error:", profilesError);
+          } else {
+            console.log("✅ Profiles fetched:", profiles?.length || 0);
+            // Build lookup map
+            const map: Record<string, any> = {};
+            profiles.forEach((profile: any) => {
+              map[profile.user_id] = profile;
+            });
+            setProfileMap(map);
+          }
         }
 
         setRows(cards || []);
       } catch (err: any) {
-        console.error("Failed to fetch cards:", err);
+        console.error("❌ Failed to fetch cards:", err);
+        setError(err.message || "Failed to load card transactions");
       } finally {
         setLoading(false);
       }
@@ -69,7 +86,7 @@ export default function CardsList() {
     fetchData();
   }, []);
 
-  // Format date
+  // Helper function to format date
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -93,8 +110,23 @@ export default function CardsList() {
     return colors[status] || 'bg-gray-500';
   };
 
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-semibold text-red-500">Error Loading Cards</h2>
+        <p className="text-muted-foreground mt-2">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Card Withdrawals</h1>
         <p className="text-sm text-muted-foreground">
@@ -169,7 +201,7 @@ export default function CardsList() {
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3 text-muted-foreground" />
                             <span className="font-mono text-sm font-medium">
-                              {c.amount?.toFixed(2) || "0.00"}
+                              ${c.amount?.toFixed(2) || "0.00"}
                             </span>
                           </div>
                         </TableCell>
