@@ -16,16 +16,53 @@ export default function ManagersList() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [requests, setRequests] = useState<any[]>([]);
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("expert_traders").select("*").order("sort_order", { ascending: true });
-    if (error) toast.error(error.message);
-    setRows(data ?? []);
+    const [{ data: traders, error: tErr }, { data: subs }] = await Promise.all([
+      supabase.from("expert_traders").select("*").order("sort_order", { ascending: true }),
+      supabase.from("copy_subscriptions").select("*").eq("status", "pending").order("created_at", { ascending: false }),
+    ]);
+    if (tErr) toast.error(tErr.message);
+
+    // Enrich subscription requests
+    const userIds = Array.from(new Set((subs ?? []).map((s: any) => s.user_id).filter(Boolean)));
+    const traderIds = Array.from(new Set((subs ?? []).map((s: any) => s.trader_id).filter(Boolean)));
+    let pmap: Record<string, any> = {};
+    let tmap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: ps } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      (ps ?? []).forEach((p: any) => { pmap[p.user_id] = p; });
+    }
+    if (traderIds.length) {
+      const { data: ts } = await supabase.from("expert_traders").select("id, name, handle").in("id", traderIds);
+      (ts ?? []).forEach((t: any) => { tmap[t.id] = t; });
+    }
+    setRequests((subs ?? []).map((s: any) => ({ ...s, profile: pmap[s.user_id], trader: tmap[s.trader_id] })));
+    setRows(traders ?? []);
     setLoading(false);
   };
 
   useEffect(() => { document.title = "Admin · Expert Traders"; load(); }, []);
+
+  const assign = async (req: any) => {
+    const { error } = await supabase.from("copy_subscriptions").update({ status: "active" }).eq("id", req.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("user_experts").insert({
+      user_id: req.user_id, expert_id: req.trader_id, is_copying: true, deposit_confirmed: false,
+    });
+    await supabase.from("profiles").update({ assigned_trader_id: req.trader_id, assigned_expert_id: req.trader_id }).eq("user_id", req.user_id);
+    toast.success("Subscription assigned");
+    load();
+  };
+
+  const decline = async (req: any) => {
+    const { error } = await supabase.from("copy_subscriptions").update({ status: "declined" }).eq("id", req.id);
+    if (error) return toast.error(error.message);
+    toast.success("Request declined");
+    load();
+  };
 
   const remove = async (m: any) => {
     if (!confirm(`Remove ${m.name}?`)) return;
