@@ -96,8 +96,29 @@ export default function ManagersList() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold sm:text-2xl">Expert Traders</h1>
-        <p className="text-xs text-muted-foreground sm:text-sm">{rows.length} total</p>
+        <p className="text-xs text-muted-foreground sm:text-sm">{rows.length} total · {requests.length} pending request{requests.length === 1 ? "" : "s"}</p>
       </div>
+
+      {requests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Copy-Expert Requests</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {requests.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{r.profile?.full_name || r.profile?.email || "Unknown"}</p>
+                  <p className="truncate text-xs text-muted-foreground">→ {r.trader?.name || "—"} (@{r.trader?.handle || "?"})</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => assign(r)}><Check className="mr-1 h-3.5 w-3.5" />Assign</Button>
+                  <Button size="sm" variant="destructive" onClick={() => decline(r)}><X className="mr-1 h-3.5 w-3.5" />Decline</Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {loading ? (
@@ -148,7 +169,7 @@ export default function ManagersList() {
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
                 <div><Label>Handle</Label><Input value={editing.handle ?? ""} onChange={(e) => setEditing({ ...editing, handle: e.target.value })} /></div>
               </div>
-              <div><Label>Avatar URL</Label><Input value={editing.avatar_url ?? ""} onChange={(e) => setEditing({ ...editing, avatar_url: e.target.value })} /></div>
+              <AvatarUpload value={editing.avatar_url} onChange={(url) => setEditing({ ...editing, avatar_url: url })} label="Avatar" pathPrefix="traders" />
               <div><Label>Specialty</Label><Input value={editing.specialty ?? ""} onChange={(e) => setEditing({ ...editing, specialty: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Win Rate %</Label><Input type="number" value={editing.win_rate ?? 0} onChange={(e) => setEditing({ ...editing, win_rate: e.target.value })} /></div>
