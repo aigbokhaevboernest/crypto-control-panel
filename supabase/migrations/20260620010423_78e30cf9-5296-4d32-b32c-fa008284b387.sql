@@ -1,0 +1,1 @@
+ALTER TABLE public.kyc_submissions ENABLE ROW LEVEL SECURITY;
