@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase as supabaseTyped } from "@/lib/supabaseClient";
 const supabase: any = supabaseTyped;
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Pencil, Briefcase, TrendingUp } from "lucide-react";
+import { Trash2, Pencil, Briefcase, TrendingUp, Check, X } from "lucide-react";
+import { AvatarUpload } from "../components/AvatarUpload";
 
 export default function ManagersList() {
   const [rows, setRows] = useState<any[]>([]);
