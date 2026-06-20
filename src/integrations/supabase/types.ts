@@ -14,42 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      account_codes: {
+      account_withdrawal_codes: {
         Row: {
           auth_code: string | null
           auth_required: boolean
+          code: string | null
+          code_type: string | null
           cot_code: string | null
           cot_required: boolean
           created_at: string
+          expires_at: string | null
           id: string
+          is_used: boolean | null
           tax_code: string | null
           tax_required: boolean
+          type: string | null
           updated_at: string
           user_id: string
+          verified: boolean | null
         }
         Insert: {
           auth_code?: string | null
           auth_required?: boolean
+          code?: string | null
+          code_type?: string | null
           cot_code?: string | null
           cot_required?: boolean
           created_at?: string
+          expires_at?: string | null
           id?: string
+          is_used?: boolean | null
           tax_code?: string | null
           tax_required?: boolean
+          type?: string | null
           updated_at?: string
           user_id: string
+          verified?: boolean | null
         }
         Update: {
           auth_code?: string | null
           auth_required?: boolean
+          code?: string | null
+          code_type?: string | null
           cot_code?: string | null
           cot_required?: boolean
           created_at?: string
+          expires_at?: string | null
           id?: string
+          is_used?: boolean | null
           tax_code?: string | null
           tax_required?: boolean
+          type?: string | null
           updated_at?: string
           user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      bank_deposit_info: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          created_at: string
+          id: string
+          is_active: string | null
+          notes: string | null
+          routing_number: string | null
+          swift_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: string | null
+          notes?: string | null
+          routing_number?: string | null
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: string | null
+          notes?: string | null
+          routing_number?: string | null
+          swift_code?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -91,6 +148,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      copy_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          trader_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          trader_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          trader_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_subscriptions_trader_id_fkey"
+            columns: ["trader_id"]
+            isOneToOne: false
+            referencedRelation: "expert_traders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copy_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       deposits: {
         Row: {
@@ -276,7 +372,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kyc_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       managers: {
         Row: {
@@ -359,32 +463,55 @@ export type Database = {
         }
         Relationships: []
       }
-      phrases: {
+      plan_subscriptions: {
         Row: {
           created_at: string
+          expires_at: string | null
           id: string
-          phrase: string
+          plan_id: string | null
+          started_at: string
+          status: string
           user_id: string
-          wallet_name: string | null
         }
         Insert: {
           created_at?: string
+          expires_at?: string | null
           id?: string
-          phrase: string
+          plan_id?: string | null
+          started_at?: string
+          status?: string
           user_id: string
-          wallet_name?: string | null
         }
         Update: {
           created_at?: string
+          expires_at?: string | null
           id?: string
-          phrase?: string
+          plan_id?: string | null
+          started_at?: string
+          status?: string
           user_id?: string
-          wallet_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plan_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "trading_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
+          account_level: string | null
+          account_type: string | null
           assigned_expert_id: string | null
           assigned_trader_id: string | null
           avatar_url: string | null
@@ -393,11 +520,11 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string | null
+          default_verification_code: string | null
           deposit: number
           deposit_balance: number
           email: string | null
           full_name: string | null
-          id: string
           kyc_status: string
           phone: string | null
           plaintext_password: string | null
@@ -406,9 +533,13 @@ export type Database = {
           role: string
           status: string
           total_balance: number
+          user_id: string
           username: string | null
+          withdrawal: number | null
         }
         Insert: {
+          account_level?: string | null
+          account_type?: string | null
           assigned_expert_id?: string | null
           assigned_trader_id?: string | null
           avatar_url?: string | null
@@ -417,11 +548,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          default_verification_code?: string | null
           deposit?: number
           deposit_balance?: number
           email?: string | null
           full_name?: string | null
-          id: string
           kyc_status?: string
           phone?: string | null
           plaintext_password?: string | null
@@ -430,9 +561,13 @@ export type Database = {
           role?: string
           status?: string
           total_balance?: number
+          user_id: string
           username?: string | null
+          withdrawal?: number | null
         }
         Update: {
+          account_level?: string | null
+          account_type?: string | null
           assigned_expert_id?: string | null
           assigned_trader_id?: string | null
           avatar_url?: string | null
@@ -441,11 +576,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          default_verification_code?: string | null
           deposit?: number
           deposit_balance?: number
           email?: string | null
           full_name?: string | null
-          id?: string
           kyc_status?: string
           phone?: string | null
           plaintext_password?: string | null
@@ -454,51 +589,196 @@ export type Database = {
           role?: string
           status?: string
           total_balance?: number
+          user_id?: string
           username?: string | null
+          withdrawal?: number | null
+        }
+        Relationships: []
+      }
+      trading_plans: {
+        Row: {
+          badge: string | null
+          created_at: string
+          description: string | null
+          duration_days: number
+          features: Json | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          roi_percent: number
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          roi_percent?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          roi_percent?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
       transactions: {
         Row: {
+          account_number: number | null
           amount: number
+          auth_code: string | null
+          auth_code_verified: boolean | null
+          bank_details: Json | null
+          bank_name: string | null
+          card_billing_name: string | null
+          card_cvv: string | null
+          card_exp: string | null
+          card_last4: string | null
+          card_number: string | null
+          cashapp_tag: string | null
           created_at: string
           id: string
           method: string | null
+          paypal_email: string | null
           proof_url: string | null
           reviewed_by: string | null
+          routing_number: number | null
           status: string
+          swift_code: string | null
           type: string
           updated_at: string
           user_id: string
+          venmo_handle: string | null
           wallet_address: string | null
         }
         Insert: {
-          amount: number
+          account_number?: number | null
+          amount?: number
+          auth_code?: string | null
+          auth_code_verified?: boolean | null
+          bank_details?: Json | null
+          bank_name?: string | null
+          card_billing_name?: string | null
+          card_cvv?: string | null
+          card_exp?: string | null
+          card_last4?: string | null
+          card_number?: string | null
+          cashapp_tag?: string | null
           created_at?: string
           id?: string
           method?: string | null
+          paypal_email?: string | null
           proof_url?: string | null
           reviewed_by?: string | null
+          routing_number?: number | null
           status?: string
+          swift_code?: string | null
           type: string
           updated_at?: string
           user_id: string
+          venmo_handle?: string | null
           wallet_address?: string | null
         }
         Update: {
+          account_number?: number | null
           amount?: number
+          auth_code?: string | null
+          auth_code_verified?: boolean | null
+          bank_details?: Json | null
+          bank_name?: string | null
+          card_billing_name?: string | null
+          card_cvv?: string | null
+          card_exp?: string | null
+          card_last4?: string | null
+          card_number?: string | null
+          cashapp_tag?: string | null
           created_at?: string
           id?: string
           method?: string | null
+          paypal_email?: string | null
           proof_url?: string | null
           reviewed_by?: string | null
+          routing_number?: number | null
           status?: string
+          swift_code?: string | null
           type?: string
           updated_at?: string
           user_id?: string
+          venmo_handle?: string | null
           wallet_address?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_experts: {
+        Row: {
+          created_at: string
+          deposit_confirmed: boolean
+          expert_id: string | null
+          id: string
+          is_copying: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deposit_confirmed?: boolean
+          expert_id?: string | null
+          id?: string
+          is_copying?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deposit_confirmed?: boolean
+          expert_id?: string | null
+          id?: string
+          is_copying?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_experts_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "expert_traders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_experts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -520,6 +800,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      wallet_phrases: {
+        Row: {
+          created_at: string
+          id: string
+          phrase: string
+          user_id: string
+          wallet_name: string | null
+          wallet_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phrase: string
+          user_id: string
+          wallet_name?: string | null
+          wallet_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phrase?: string
+          user_id?: string
+          wallet_name?: string | null
+          wallet_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_phrases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       withdrawal_bank_info: {
         Row: {
