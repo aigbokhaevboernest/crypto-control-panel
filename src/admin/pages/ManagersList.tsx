@@ -41,7 +41,6 @@ export default function ManagersList() {
     }
     // trader_id may belong to a hardcoded (non-DB) expert — fall back to the static list for display.
     const hardcodedMap: Record<string, any> = {};
-    HARDCODED_EXPERTS.forEach((h: any) => { hardcodedMap[h.id] = h; });
 
     setRequests((subs ?? []).map((s: any) => ({
       ...s,
