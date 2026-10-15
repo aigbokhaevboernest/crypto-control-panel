@@ -39,31 +39,41 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Accept either an email or a username
       let loginEmail = identifier.trim();
       if (!loginEmail.includes("@")) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("username", loginEmail)
-          .maybeSingle();
-        if (profileError || !profile?.email) {
-          toast.error("Invalid username or email");
+        // Visitors who aren't logged in can't read the profiles table directly,
+        // so the username is turned into an email by a database function instead.
+        const { data: foundEmail, error: lookupError } = await supabase.rpc(
+          "get_email_by_username",
+          { _username: loginEmail },
+        );
+        if (lookupError || !foundEmail) {
+          toast.error("Invalid username/email or password");
           return;
         }
-        loginEmail = profile.email;
+        loginEmail = foundEmail as string;
       }
-      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-      if (error || !data.user) {
-        toast.error(error?.message ?? "Sign in suppression failed");
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      });
+      if (error || !data?.user) {
+        toast.error(error?.message ?? "Sign in failed");
         return;
       }
+
       const isAdmin = await checkAdminRole(data.user.id);
       if (!isAdmin) {
         await supabase.auth.signOut({ scope: "local" });
         toast.error("Access denied");
         return;
       }
+
       navigate("/admin/dashboard", { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -94,6 +104,8 @@ export default function AdminLogin() {
               <input
                 type="text"
                 required
+                autoCapitalize="none"
+                autoCorrect="off"
                 autoComplete="username"
                 placeholder="User name / Email"
                 value={identifier}
