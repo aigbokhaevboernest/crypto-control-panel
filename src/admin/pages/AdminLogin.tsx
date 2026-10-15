@@ -13,12 +13,13 @@ export default function AdminLogin() {
 
   const checkAdminRole = async (userId: string) => {
     const { data, error } = await supabase
-      .from("profiles")
+      .from("user_roles")
       .select("role")
       .eq("user_id", userId)
-      .maybeSingle();
+      .eq("role", "admin")
+      .limit(1);
     if (error) throw error;
-    return data?.role === "admin";
+    return Array.isArray(data) && data.length > 0;
   };
 
   useEffect(() => {
