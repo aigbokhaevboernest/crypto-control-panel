@@ -31,13 +31,16 @@ export function useAdminAuth(redirectIfNot = true) {
       }
 
       try {
-        const { data } = await supabase
-          .from("profiles")
+        // Admin = has an 'admin' row in user_roles
+        const { data, error } = await supabase
+          .from("user_roles")
           .select("role")
-          .eq("user_id", userId)  // ← fixed
-          .maybeSingle();
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .limit(1);
+        if (error) throw error;
 
-        const isAdmin = data?.role === "admin";
+        const isAdmin = Array.isArray(data) && data.length > 0;
 
         if (!active) return;
         setState({ loading: false, isAdmin, userId, email });
@@ -52,7 +55,7 @@ export function useAdminAuth(redirectIfNot = true) {
       }
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((evt, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((evt: string) => {
       if (!didInitialCheck) return;
       if (evt === "SIGNED_OUT") {
         if (active) setState({ loading: false, isAdmin: false, userId: null, email: null });
@@ -60,7 +63,7 @@ export function useAdminAuth(redirectIfNot = true) {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       didInitialCheck = true;
       void check(session?.user?.id ?? null, session?.user?.email ?? null);
     });
@@ -69,7 +72,7 @@ export function useAdminAuth(redirectIfNot = true) {
       active = false;
       sub.subscription.unsubscribe();
     };
-    // eslint-disable-next-file react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return state;
