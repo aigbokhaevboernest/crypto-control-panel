@@ -1,8 +1,7 @@
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
-import { useAutoLogout } from "@/hooks/useAutoLogout";
-import { supabase } from "@/lib/supabaseClient";
+import { useAutoLogout, performLogout } from "@/hooks/useAutoLogout";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +51,6 @@ const SECTIONS: Section[] = [
 export function AdminLayout() {
   const { loading, isAdmin, email } = useAdminAuth();
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
   useAutoLogout();
 
@@ -67,9 +65,9 @@ export function AdminLayout() {
     );
   }
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
+  // Shared logout path: signs out, clears auth + idle keys, hard-redirects to /admin/login.
+  const logout = () => {
+    void performLogout("manual");
   };
 
   return (
@@ -89,7 +87,7 @@ export function AdminLayout() {
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold leading-tight">Hyip Pro</div>
+                    <div className="text-sm font-semibold leading-tight">Crypto Broker</div>
                     <div className="text-[10px] text-muted-foreground">Admin Portal</div>
                   </div>
                 </SheetTitle>
@@ -134,7 +132,7 @@ export function AdminLayout() {
               </nav>
             </SheetContent>
           </Sheet>
-          <span className="font-mono text-sm font-semibold">admin.portal</span>
+          <span className="font-mono text-sm font-semibold">Crypto Broker</span>
         </div>
         <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline max-w-[40vw]">{email}</span>
       </header>
