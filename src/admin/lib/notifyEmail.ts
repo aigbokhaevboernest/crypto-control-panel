@@ -24,13 +24,29 @@ export async function notifyEmail(opts: {
 }) {
   if (!opts.send || !opts.email) return;
   const { data: u } = await supabase.auth.getUser();
-  await supabase.from("email_log").insert({
-    recipient_email: opts.email,
-    recipient_user_id: opts.userId,
-    subject: opts.subject,
-    body: opts.body ?? "",
-    email_type: opts.intent,
-    status: "queued",
-    sent_by: u.user?.id ?? null,
+  const { data: log } = await supabase
+    .from("email_log")
+    .insert({
+      recipient_email: opts.email,
+      recipient_user_id: opts.userId,
+      subject: opts.subject,
+      body: opts.body ?? "",
+      email_type: opts.intent,
+      status: "queued",
+      sent_by: u.user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  const { error } = await supabase.functions.invoke("send-email", {
+    body: { to: opts.email, subject: opts.subject, message: opts.body ?? "" },
   });
+  if (error) console.error("send-email failed:", error);
+
+  if (log?.id) {
+    await supabase
+      .from("email_log")
+      .update({ status: error ? "failed" : "sent" })
+      .eq("id", log.id);
+  }
 }
