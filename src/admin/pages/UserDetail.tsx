@@ -923,6 +923,9 @@ If you have questions, contact support@teslagrowthequity.com.
             <span>{user.email}</span>
             {cur && <span>· {cur}</span>}
           </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            Created: {user.created_at ? new Date(user.created_at).toLocaleString() : "—"}
+          </div>
         </div>
       </div>
 
